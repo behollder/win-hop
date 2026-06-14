@@ -1,15 +1,16 @@
 ;;; win-hop.el --- Fast window switcher -*- lexical-binding: t; -*-
 
 ;; Author: Nikita Onachko <behollder.kh@gmail.com>
-;; Version: 0.1
+;; Version: 0.2
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: window, location
 ;;; Homepage: https://github.com
 
 ;;; Commentary:
-;; This package dims all visible windows, assigns a shortcut letter to each,
-;; and jumps to the window corresponding to the pressed key. Works on all
-;; windows including Treemacs, Neotree, vterm, internal buffers, etc.
+;; This package overrides the header-line of all visible windows,
+;; assigns a shortcut letter to each, and jumps to the window.
+;; Works perfectly on all text/terminal buffers including vterm and treemacs
+;; without interfering with buffer contents or overlays.
 
 ;;; Code:
 
@@ -29,79 +30,50 @@
   '((t
      :foreground "white"
      :background "#ff3333"
-     :weight bold
-     :height 2.0
-     :box (:line-width 4 :color "#ff3333")))
-  "Face used for the large window selection label."
-  :group 'win-hop)
-
-(defface win-hop-dim-face
-  '((t
-     :foreground "#666666"))
-  "Face used to dim window contents temporarily."
+     :weight bold))
+  "Face used for the window selection label in the header line."
   :group 'win-hop)
 
 ;;;###autoload
 (defun win-hop ()
-  "Dim all visible windows, show labels, and switch on key press."
+  "Hijack header lines, show labels, and switch on key press."
   (interactive)
 
   (let ((all-windows (delq (selected-window) (window-list)))
-        (overlays nil)
-        (window-map nil))
+        (window-map nil)
+        (original-headers nil))
 
     (if (= (length all-windows) 0)
         (message "Only one window visible!")
 
       (unwind-protect
           (progn
-
-            ;; Create overlays and labels
+            ;; Save original states and inject labels into header-lines
             (cl-loop for win in all-windows
                      for key in win-hop-keys
                      do
-                     (with-selected-window win
+                     (let ((orig-header (window-parameter win 'header-line-format))
+                           (orig-header-state (with-current-buffer (window-buffer win)
+                                                header-line-format)))
 
-                       (let* ((start (window-start))
-                              (end (window-end nil t))
+                       ;; Track original configuration to restore later
+                       (push (list win orig-header orig-header-state) original-headers)
 
-                              ;; Place label near top of visible window
-                              (label-pos
-                               (save-excursion
-                                 (goto-char start)
-                                 ;; Move slightly down from top edge
-                                 (forward-line 1)
-                                 (line-beginning-position))))
+                       ;; Format a high-visibility block at the top of the window
+                       (let ((label-str (propertize (format "==  %c  ==" (capitalize key))
+                                                    'face 'win-hop-label-face)))
 
-                         ;; Dim overlay
-                         (let ((dim-ov (make-overlay start end)))
-                           (overlay-put dim-ov
-                                        'face
-                                        'win-hop-dim-face)
-                           (push dim-ov overlays))
+                         ;; Set it at the window level so it overrides buffer defaults
+                         (set-window-parameter win 'header-line-format label-str)
 
-                         ;; Label overlay
-                         (let ((label-ov
-                                (make-overlay label-pos label-pos)))
+                         ;; Force buffer-local override to guarantee visibility in strict modes
+                         (with-current-buffer (window-buffer win)
+                           (setq-local header-line-format label-str)))
 
-                           ;; Use before-string so it works reliably
-                           ;; in treemacs/vterm/etc.
-                           (overlay-put
-                            label-ov
-                            'before-string
-                            (propertize
-                             (format " %c " key)
-                             'face
-                             'win-hop-label-face))
+                       ;; Map key -> window
+                       (push (cons key win) window-map)))
 
-                           (overlay-put label-ov 'priority 9999)
-
-                           (push label-ov overlays))
-
-                         ;; Map key -> window
-                         (push (cons key win) window-map))))
-
-            ;; Force redraw
+            ;; Force a clean redraw so changes hit the screen instantly
             (redisplay t)
 
             ;; Read single key
@@ -112,8 +84,13 @@
                   (select-window target-window)
                 (message "Invalid selection: %c" input))))
 
-        ;; Cleanup overlays
-        (mapc #'delete-overlay overlays)))))
+        ;; Cleanup: Restore absolutely everything to how it was
+        (pcase-dolist (`(,win ,orig-win-hdr ,orig-buf-hdr) original-headers)
+          (when (window-live-p win)
+            (set-window-parameter win 'header-line-format orig-win-hdr)
+            (when (buffer-live-p (window-buffer win))
+              (with-current-buffer (window-buffer win)
+                (setq-local header-line-format orig-buf-hdr)))))))))
 
 ;;; Keybinding
 (global-set-key (kbd "C-x o") #'win-hop)
