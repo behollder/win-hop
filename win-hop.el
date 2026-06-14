@@ -1,7 +1,7 @@
 ;;; win-hop.el --- Fast window switcher -*- lexical-binding: t; -*-
 
 ;; Author: Nikita Onachko <behollder.kh@gmail.com>
-;; Version: 0.2
+;; Version: 0.3
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: window, location
 ;;; Homepage: https://github.com
@@ -48,27 +48,30 @@
 
       (unwind-protect
           (progn
-            ;; Save original states and inject labels into header-lines
+            ;; Inject labels strictly at the window level
             (cl-loop for win in all-windows
                      for key in win-hop-keys
                      do
-                     (let ((orig-header (window-parameter win 'header-line-format))
-                           (orig-header-state (with-current-buffer (window-buffer win)
-                                                header-line-format)))
+                     (let ((orig-win-hdr (window-parameter win 'header-line-format))
+                           (buf (window-buffer win)))
 
-                       ;; Track original configuration to restore later
-                       (push (list win orig-header orig-header-state) original-headers)
+                       ;; Save buffer-local state only if we haven't touched this buffer yet
+                       (unless (assoc buf original-headers)
+                         (push (cons buf (with-current-buffer buf header-line-format))
+                               original-headers))
 
-                       ;; Format a high-visibility block at the top of the window
+                       ;; Save the window's own parameter state
+                       (set-window-parameter win 'win-hop-orig-hdr orig-win-hdr)
+
                        (let ((label-str (propertize (format "==  %c  ==" (capitalize key))
                                                     'face 'win-hop-label-face)))
+                         ;; Store unique key directly on the specific window instance
+                         (set-window-parameter win 'header-line-format label-str))
 
-                         ;; Set it at the window level so it overrides buffer defaults
-                         (set-window-parameter win 'header-line-format label-str)
-
-                         ;; Force buffer-local override to guarantee visibility in strict modes
-                         (with-current-buffer (window-buffer win)
-                           (setq-local header-line-format label-str)))
+                       ;; Force the buffer to read from the current window's parameters
+                       (with-current-buffer buf
+                         (setq-local header-line-format
+                                     '(:eval (window-parameter (selected-window) 'header-line-format))))
 
                        ;; Map key -> window
                        (push (cons key win) window-map)))
@@ -84,13 +87,20 @@
                   (select-window target-window)
                 (message "Invalid selection: %c" input))))
 
-        ;; Cleanup: Restore absolutely everything to how it was
-        (pcase-dolist (`(,win ,orig-win-hdr ,orig-buf-hdr) original-headers)
+        ;; Cleanup everything
+        ;; Restore windows
+        (dolist (win all-windows)
           (when (window-live-p win)
-            (set-window-parameter win 'header-line-format orig-win-hdr)
-            (when (buffer-live-p (window-buffer win))
-              (with-current-buffer (window-buffer win)
-                (setq-local header-line-format orig-buf-hdr)))))))))
+            (set-window-parameter win 'header-line-format (window-parameter win 'win-hop-orig-hdr))
+            (set-window-parameter win 'win-hop-orig-hdr nil)))
+
+        ;; Restore buffers
+        (pcase-dolist (`(,buf . ,orig-buf-hdr) original-headers)
+          (when (buffer-live-p buf)
+            (with-current-buffer buf
+              (if orig-buf-hdr
+                  (setq header-line-format orig-buf-hdr)
+                (kill-local-variable 'header-line-format)))))))))
 
 ;;; Keybinding
 (global-set-key (kbd "C-x o") #'win-hop)
