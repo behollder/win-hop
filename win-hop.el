@@ -106,9 +106,6 @@
         (force-mode-line-update t)
         (redisplay t)))))
 
-;;; Keybinding
-(global-set-key (kbd "C-x o") #'win-hop)
-
 (provide 'win-hop)
 
 ;;; win-hop.el ends here
