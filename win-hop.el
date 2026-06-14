@@ -17,7 +17,7 @@
 (require 'cl-lib)
 
 (defgroup win-hop nil
-  "Custom window switcher configurations."
+  "Fast window switcher."
   :group 'convenience)
 
 (defcustom win-hop-keys
