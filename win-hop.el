@@ -4,7 +4,7 @@
 ;; Maintainer: Nikita Onachko <behollder.kh@gmail.com>
 ;; Version: 0.4
 ;; Package-Requires: ((emacs "27.1"))
-;; Keywords: window, location
+;; Keywords: convenience, window, location
 ;; Homepage: https://github.com/behollder/win-hop
 
 ;;; Commentary:
