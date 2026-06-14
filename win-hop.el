@@ -1,6 +1,7 @@
 ;;; win-hop.el --- Fast window switcher -*- lexical-binding: t; -*-
 
 ;; Author: Nikita Onachko <behollder.kh@gmail.com>
+;; Maintainer: Nikita Onachko <behollder.kh@gmail.com>
 ;; Version: 0.4
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: window, location
