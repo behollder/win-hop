@@ -4,7 +4,7 @@
 ;; Version: 0.4
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: window, location
-;;; Homepage: https://github.com
+;; Homepage: https://github.com/behollder/win-hop
 
 ;;; Commentary:
 ;; This package overrides the header-line of all visible windows,
