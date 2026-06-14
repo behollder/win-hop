@@ -1,7 +1,7 @@
 ;;; win-hop.el --- Fast window switcher -*- lexical-binding: t; -*-
 
 ;; Author: Nikita Onachko <behollder.kh@gmail.com>
-;; Version: 0.3
+;; Version: 0.4
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: window, location
 ;;; Homepage: https://github.com
@@ -70,13 +70,13 @@
 
                        ;; Force the buffer to read from the current window's parameters
                        (with-current-buffer buf
-                         (setq-local header-line-format
-                                     '(:eval (window-parameter (selected-window) 'header-line-format))))
+                         (setq-local header-line-format t))
 
                        ;; Map key -> window
                        (push (cons key win) window-map)))
 
             ;; Force a clean redraw so changes hit the screen instantly
+            (force-mode-line-update t)
             (redisplay t)
 
             ;; Read single key
@@ -100,7 +100,11 @@
             (with-current-buffer buf
               (if orig-buf-hdr
                   (setq header-line-format orig-buf-hdr)
-                (kill-local-variable 'header-line-format)))))))))
+                (kill-local-variable 'header-line-format)))))
+
+        ;; Clear the frame-wide rendering cache to prevent stuck headers
+        (force-mode-line-update t)
+        (redisplay t)))))
 
 ;;; Keybinding
 (global-set-key (kbd "C-x o") #'win-hop)
