@@ -46,11 +46,11 @@
   "Dim all visible windows, show labels, and switch on key press."
   (interactive)
 
-  (let ((all-windows (window-list))
+  (let ((all-windows (delq (selected-window) (window-list)))
         (overlays nil)
         (window-map nil))
 
-    (if (<= (length all-windows) 1)
+    (if (= (length all-windows) 0)
         (message "Only one window visible!")
 
       (unwind-protect
