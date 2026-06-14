@@ -2,7 +2,7 @@
 
 [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
 
-`win-hop` is an Emacs package to jump to a any window by label. It uses header line to show a jump label and allow jump to any window including vterm float window.
+`win-hop` is an Emacs package to jump to any window by label. It uses the header line to show a jump label and allows jumping to any window, including vterm floating window.
 
 Bind the jump function to you key:
 
@@ -11,4 +11,3 @@ Bind the jump function to you key:
 ```
 
 It uses letters: ```a, s, d, f, j, k, l, g, q, w```
-
