@@ -27,6 +27,9 @@
 ;; assigns a shortcut letter to each, and jumps to the window.
 ;; Works perfectly on all text/terminal buffers including vterm and treemacs
 ;; without interfering with buffer contents or overlays.
+;;
+;; To use, bind the main interactive command to a key configuration of your choice:
+;; (global-set-key (kbd "C-x o") 'win-hop)
 
 ;;; Code:
 
